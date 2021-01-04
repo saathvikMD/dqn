@@ -1,0 +1,31 @@
+import numpy as np
+
+class Dqn():
+     def __init__(self, maxMemory, discount):
+          self.maxMemory = maxMemory
+          self.discount = discount
+          self.memory = list()
+          
+     def remember(self, transition, game_over):
+          self.memory.append([transition, game_over])
+          if len(self.memory) > self.maxMemory:
+               del self.memory[0]
+     
+     def get_batch(self, model, batch_size):
+          len_memory = len(self.memory)
+          num_outputs = model.output_shape[-1]
+          
+          inputs = np.zeros((min(batch_size, len_memory), self.memory[0][0][0].shape[1], self.memory[0][0][0].shape[2], self.memory[0][0][0].shape[3]))
+          targets = np.zeros((min(batch_size, len_memory), num_outputs))
+          for i, inx in enumerate(np.random.randint(0, len_memory, size = min(batch_size, len_memory))):
+               current_state, action, reward, next_state = self.memory[inx][0]
+               game_over = self.memory[inx][1]               
+               inputs[i] = current_state
+               targets[i] = model.predict(current_state)[0]
+               if game_over:
+                    targets[i][action] = reward
+               else:
+                    targets[i][action] = reward + self.discount * np.max(model.predict(next_state)[0])
+          return inputs, targets
+
+          
